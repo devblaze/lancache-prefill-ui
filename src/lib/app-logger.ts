@@ -71,7 +71,6 @@ class AppLogger {
 
   clear() {
     this.logs = [];
-    this.nextId = 1;
   }
 }
 

@@ -29,6 +29,8 @@ export async function GET(
 
       const onProgress = (data: unknown) => sendEvent("progress", data);
       const onLog = (data: unknown) => sendEvent("log", data);
+      const onGameComplete = (data: unknown) => sendEvent("game-complete", data);
+      const onGameError = (data: unknown) => sendEvent("game-error", data);
       const onComplete = (data: unknown) => {
         sendEvent("complete", data);
         cleanup();
@@ -51,12 +53,16 @@ export async function GET(
       function cleanup() {
         activeJob.off("progress", onProgress);
         activeJob.off("log", onLog);
+        activeJob.off("game-complete", onGameComplete);
+        activeJob.off("game-error", onGameError);
         activeJob.off("complete", onComplete);
         activeJob.off("error", onError);
       }
 
       activeJob.on("progress", onProgress);
       activeJob.on("log", onLog);
+      activeJob.on("game-complete", onGameComplete);
+      activeJob.on("game-error", onGameError);
       activeJob.on("complete", onComplete);
       activeJob.on("error", onError);
 

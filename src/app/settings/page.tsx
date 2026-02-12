@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { ToolsConfiguration } from "@/components/settings/tools-configuration";
+import { CacheManagement } from "@/components/settings/cache-management";
 
 export default async function SettingsPage() {
   const [settings, tools] = await Promise.all([
@@ -27,6 +28,9 @@ export default async function SettingsPage() {
         sshKeyPath: settings.sshKeyPath,
         sshPassword: settings.sshPassword,
         lancacheServerUrl: settings.lancacheServerUrl,
+        defaultScheduleTime: settings.defaultScheduleTime,
+        enableAutoUpdate: settings.enableAutoUpdate,
+        autoUpdateTime: settings.autoUpdateTime,
       }
     : null;
 
@@ -41,6 +45,7 @@ export default async function SettingsPage() {
 
       <SettingsForm initialSettings={serializedSettings} />
       <ToolsConfiguration tools={serializedTools} />
+      <CacheManagement />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Save, Wifi, Server, Monitor, Check } from "lucide-react";
+import { Save, Wifi, Server, Monitor, Check, Clock, RefreshCw } from "lucide-react";
 
 interface SettingsFormProps {
   initialSettings: {
@@ -15,6 +15,9 @@ interface SettingsFormProps {
     sshKeyPath: string | null;
     sshPassword: string | null;
     lancacheServerUrl: string | null;
+    defaultScheduleTime: string;
+    enableAutoUpdate: boolean;
+    autoUpdateTime: string;
   } | null;
 }
 
@@ -44,6 +47,15 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
   );
   const [lancacheServerUrl, setLancacheServerUrl] = useState(
     initialSettings?.lancacheServerUrl || ""
+  );
+  const [defaultScheduleTime, setDefaultScheduleTime] = useState(
+    initialSettings?.defaultScheduleTime || "01:00"
+  );
+  const [enableAutoUpdate, setEnableAutoUpdate] = useState(
+    initialSettings?.enableAutoUpdate || false
+  );
+  const [autoUpdateTime, setAutoUpdateTime] = useState(
+    initialSettings?.autoUpdateTime || "03:00"
   );
 
   const [saving, setSaving] = useState(false);
@@ -75,6 +87,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     sshKeyPath: initialSettings?.sshKeyPath || "",
     sshPassword: initialSettings?.sshPassword || "",
     lancacheServerUrl: initialSettings?.lancacheServerUrl || "",
+    defaultScheduleTime: initialSettings?.defaultScheduleTime || "01:00",
+    enableAutoUpdate: initialSettings?.enableAutoUpdate || false,
+    autoUpdateTime: initialSettings?.autoUpdateTime || "03:00",
   });
 
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,6 +120,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         sshKeyPath,
         sshPassword,
         lancacheServerUrl,
+        defaultScheduleTime,
+        enableAutoUpdate,
+        autoUpdateTime,
         ...overrides,
       };
 
@@ -123,6 +141,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             sshKeyPath: current.sshKeyPath || null,
             sshPassword: current.sshPassword || null,
             lancacheServerUrl: normalizeUrl(current.lancacheServerUrl),
+            defaultScheduleTime: current.defaultScheduleTime,
+            enableAutoUpdate: current.enableAutoUpdate,
+            autoUpdateTime: current.autoUpdateTime,
           }),
         });
 
@@ -160,6 +181,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       sshKeyPath,
       sshPassword,
       lancacheServerUrl,
+      defaultScheduleTime,
+      enableAutoUpdate,
+      autoUpdateTime,
     ]
   );
 
@@ -175,7 +199,10 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       sshAuthMethod !== s.sshAuthMethod ||
       sshKeyPath !== s.sshKeyPath ||
       sshPassword !== s.sshPassword ||
-      lancacheServerUrl !== s.lancacheServerUrl
+      lancacheServerUrl !== s.lancacheServerUrl ||
+      defaultScheduleTime !== s.defaultScheduleTime ||
+      enableAutoUpdate !== s.enableAutoUpdate ||
+      autoUpdateTime !== s.autoUpdateTime
     );
   }, [
     lancachePath,
@@ -188,6 +215,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     sshKeyPath,
     sshPassword,
     lancacheServerUrl,
+    defaultScheduleTime,
+    enableAutoUpdate,
+    autoUpdateTime,
   ]);
 
   // Auto-save on blur if values changed
@@ -318,6 +348,79 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               How often to re-check which games are cached
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Scheduling & Auto-Update */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
+          <Clock className="h-5 w-5" />
+          Scheduling & Auto-Update
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Default Schedule Time</label>
+            <input
+              type="time"
+              value={defaultScheduleTime}
+              onChange={(e) => setDefaultScheduleTime(e.target.value)}
+              onBlur={autoSaveOnBlur}
+              className={inputClass}
+            />
+            <p className={helperClass}>
+              New scheduled downloads will default to this time
+            </p>
+          </div>
+
+          <div className="border-t border-zinc-200 pt-4 dark:border-zinc-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium">
+                  Auto-Update Cached Games
+                </label>
+                <p className="text-xs text-zinc-500">
+                  Automatically re-download cached games daily to keep them up
+                  to date
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !enableAutoUpdate;
+                  setEnableAutoUpdate(next);
+                  saveSettings({ enableAutoUpdate: next });
+                }}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  enableAutoUpdate ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-600"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    enableAutoUpdate ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {enableAutoUpdate && (
+            <div>
+              <label className={labelClass}>
+                <RefreshCw className="mr-1 inline h-3.5 w-3.5" />
+                Auto-Update Time
+              </label>
+              <input
+                type="time"
+                value={autoUpdateTime}
+                onChange={(e) => setAutoUpdateTime(e.target.value)}
+                onBlur={autoSaveOnBlur}
+                className={inputClass}
+              />
+              <p className={helperClass}>
+                Time to check for and download updates to cached games daily
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

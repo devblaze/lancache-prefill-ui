@@ -48,20 +48,44 @@ export function JobDetails({ job: initialJob }: JobDetailsProps) {
     isRunning ? `/api/jobs/${initialJob.id}/events` : null
   );
 
-  // Derive progress and logs from SSE messages without setState in effects
+  // Derive progress, game statuses, and logs from SSE messages
   const gameProgress = useMemo(() => {
-    const progress: Record<string, number> = {};
+    const progress: Record<string, { percent: number; downloaded: number; total: number; speed: string }> = {};
     for (const msg of messages) {
       if (msg.event === "progress") {
-        const data = msg.data as Record<string, unknown>;
-        if (data.progress !== undefined) {
-          progress.all = data.progress as number;
+        const data = msg.data as { appId?: string; progress?: number; downloadedBytes?: number; totalBytes?: number; speed?: string };
+        const appId = data.appId;
+        if (appId && data.progress !== undefined) {
+          progress[appId] = {
+            percent: data.progress,
+            downloaded: data.downloadedBytes ?? 0,
+            total: data.totalBytes ?? 0,
+            speed: data.speed ?? "",
+          };
         }
-      } else if (msg.event === "complete") {
-        router.refresh();
       }
     }
     return progress;
+  }, [messages]);
+
+  const gameStatuses = useMemo(() => {
+    const statuses: Record<string, string> = {};
+    let jobDone = false;
+    for (const msg of messages) {
+      if (msg.event === "game-complete") {
+        const data = msg.data as { appId?: string };
+        if (data.appId) statuses[data.appId] = "completed";
+      } else if (msg.event === "game-error") {
+        const data = msg.data as { appId?: string };
+        if (data.appId) statuses[data.appId] = "failed";
+      } else if (msg.event === "complete" || msg.event === "error") {
+        jobDone = true;
+      }
+    }
+    if (jobDone) {
+      router.refresh();
+    }
+    return statuses;
   }, [messages, router]);
 
   const liveLogs = useMemo(() => {
@@ -155,8 +179,10 @@ export function JobDetails({ job: initialJob }: JobDetailsProps) {
         <h2 className="mb-4 text-xl font-semibold">Games</h2>
         <div className="space-y-3">
           {initialJob.games.map((jobGame) => {
-            const progress =
-              gameProgress[jobGame.game.appId] ?? jobGame.progress;
+            const liveProgress = gameProgress[jobGame.game.appId];
+            const percent = liveProgress?.percent ?? jobGame.progress;
+            const status = gameStatuses[jobGame.game.appId] ?? jobGame.status;
+            const showProgress = status === "downloading" || percent > 0;
             return (
               <div
                 key={jobGame.id}
@@ -164,28 +190,35 @@ export function JobDetails({ job: initialJob }: JobDetailsProps) {
               >
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {gameStatusIcon(jobGame.status)}
+                    {gameStatusIcon(status)}
                     <div>
                       <p className="font-medium">{jobGame.game.name}</p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {formatBytes(
-                          jobGame.sizeBytes ? BigInt(jobGame.sizeBytes) : null
-                        )}
+                        {liveProgress && liveProgress.total > 0
+                          ? `${formatBytes(BigInt(Math.round(liveProgress.downloaded)))} / ${formatBytes(BigInt(Math.round(liveProgress.total)))}`
+                          : jobGame.sizeBytes
+                            ? formatBytes(BigInt(jobGame.sizeBytes))
+                            : null}
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm capitalize">{jobGame.status}</span>
+                  <div className="text-right">
+                    <span className="text-sm capitalize">{status}</span>
+                    {liveProgress?.speed && status === "downloading" && (
+                      <p className="text-xs text-zinc-500">{liveProgress.speed}</p>
+                    )}
+                  </div>
                 </div>
-                {(jobGame.status === "downloading" || progress > 0) && (
+                {showProgress && (
                   <div className="mt-2">
                     <div className="mb-1 flex justify-between text-sm">
                       <span>Progress</span>
-                      <span>{progress.toFixed(1)}%</span>
+                      <span>{percent.toFixed(1)}%</span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700">
                       <div
                         className="h-2 rounded-full bg-blue-600 transition-all"
-                        style={{ width: `${Math.min(progress, 100)}%` }}
+                        style={{ width: `${Math.min(percent, 100)}%` }}
                       />
                     </div>
                   </div>

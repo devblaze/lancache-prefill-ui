@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
       games: {
         include: { game: true },
       },
+      schedule: {
+        select: { id: true, name: true, type: true },
+      },
       _count: {
         select: { logs: true },
       },
@@ -39,7 +42,13 @@ export async function GET(request: NextRequest) {
     take: limit,
   });
 
-  return NextResponse.json(jobs);
+  const serialized = JSON.parse(
+    JSON.stringify(jobs, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
+
+  return NextResponse.json(serialized);
 }
 
 export async function POST(request: NextRequest) {
@@ -105,7 +114,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(fullJob, { status: 201 });
+    // Serialize BigInt fields for JSON response
+    const serialized = JSON.parse(
+      JSON.stringify(fullJob, (_key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+
+    return NextResponse.json(serialized, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });

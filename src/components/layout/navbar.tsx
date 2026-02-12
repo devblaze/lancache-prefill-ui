@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, LayoutDashboard, Library, Activity, ScrollText, Settings } from "lucide-react";
+import { Package, LayoutDashboard, Library, Activity, Clock, ScrollText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/games", label: "Games", icon: Library },
   { href: "/jobs", label: "Jobs", icon: Activity },
+  { href: "/schedules", label: "Schedules", icon: Clock },
   { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -17,7 +18,7 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <nav className="sticky top-0 z-40 border-b border-zinc-200 bg-white/95 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/95">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">

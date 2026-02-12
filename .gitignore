@@ -38,6 +38,9 @@ yarn-error.log*
 /generated
 *.db
 
+# local data (image cache, etc.)
+/data/
+
 # vercel
 .vercel
 

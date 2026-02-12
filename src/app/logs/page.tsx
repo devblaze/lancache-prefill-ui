@@ -88,9 +88,11 @@ export default function LogsPage() {
       const data = await res.json();
       if (data.logs.length > 0) {
         setLogs((prev) => {
-          const merged =
-            lastIdRef.current > 0 ? [...prev, ...data.logs] : data.logs;
-          return merged.slice(-500);
+          const map = new Map(prev.map((l: AppLogEntry) => [l.id, l]));
+          for (const log of data.logs) {
+            map.set(log.id, log);
+          }
+          return Array.from(map.values()).slice(-500);
         });
         lastIdRef.current = data.logs[data.logs.length - 1].id;
       }

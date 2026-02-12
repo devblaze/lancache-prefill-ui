@@ -71,10 +71,12 @@ export function RecentJobs({ jobs }: RecentJobsProps) {
                   <div className="flex items-center gap-3">
                     {config.icon}
                     <div>
-                      <p className="font-medium">{job.tool.displayName}</p>
+                      <p className="font-medium">
+                        {job.games.slice(0, 3).map((g) => g.game.name).join(", ")}
+                        {job.games.length > 3 && ` +${job.games.length - 3} more`}
+                      </p>
                       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {job.games.length} game{job.games.length !== 1 && "s"}{" "}
-                        &middot;{" "}
+                        {job.tool.displayName} &middot;{" "}
                         {formatDistanceToNow(new Date(job.createdAt), {
                           addSuffix: true,
                         })}

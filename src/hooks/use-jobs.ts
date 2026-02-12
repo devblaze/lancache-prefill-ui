@@ -26,6 +26,11 @@ export interface Job {
     displayName: string;
   };
   games: JobGame[];
+  schedule?: {
+    id: string;
+    name: string | null;
+    type: string;
+  } | null;
   _count?: {
     logs: number;
   };

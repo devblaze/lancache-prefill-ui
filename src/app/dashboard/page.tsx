@@ -3,11 +3,12 @@ import { DashboardStats } from "@/components/dashboard/stats";
 import { RecentJobs } from "@/components/dashboard/recent-jobs";
 import { ToolStatus } from "@/components/dashboard/tool-status";
 import { ConnectionStatus } from "@/components/dashboard/connection-status";
+import { UpcomingSchedules } from "@/components/dashboard/upcoming-schedules";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [tools, recentJobs, settings] = await Promise.all([
+  const [tools, recentJobs, settings, upcomingSchedules] = await Promise.all([
     prisma.prefillTool.findMany({
       include: {
         _count: {
@@ -26,7 +27,22 @@ export default async function DashboardPage() {
       },
     }),
     prisma.settings.findUnique({ where: { id: "default" } }),
+    prisma.schedule.findMany({
+      where: { isEnabled: true, nextRunAt: { not: null } },
+      orderBy: { nextRunAt: "asc" },
+      take: 5,
+      include: {
+        tool: true,
+        games: { select: { id: true } },
+      },
+    }),
   ]);
+
+  const serializedSchedules = JSON.parse(
+    JSON.stringify(upcomingSchedules, (_key, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
 
   return (
     <div className="space-y-8">
@@ -43,8 +59,9 @@ export default async function DashboardPage() {
         lancacheServerUrl={settings?.lancacheServerUrl || null}
         sshHost={settings?.sshHost || null}
       />
-      <ToolStatus tools={tools} />
       <RecentJobs jobs={recentJobs} />
+      <UpcomingSchedules schedules={serializedSchedules} />
+      <ToolStatus tools={tools} />
     </div>
   );
 }

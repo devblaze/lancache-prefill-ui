@@ -2,13 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { GameLibrary } from "@/components/games/game-library";
 
 export default async function GamesPage() {
-  const [games, tools] = await Promise.all([
+  const [games, tools, settings] = await Promise.all([
     prisma.game.findMany({
       include: { tool: true },
       orderBy: { name: "asc" },
     }),
     prisma.prefillTool.findMany({
       select: { id: true, displayName: true },
+    }),
+    prisma.settings.findUnique({
+      where: { id: "default" },
+      select: { defaultScheduleTime: true },
     }),
   ]);
 
@@ -30,8 +34,11 @@ export default async function GamesPage() {
         </p>
       </div>
 
-      {/* @ts-expect-error BigInt serialization */}
-      <GameLibrary initialGames={serializedGames} tools={tools} />
+      <GameLibrary
+        initialGames={serializedGames}
+        tools={tools}
+        defaultScheduleTime={settings?.defaultScheduleTime ?? "01:00"}
+      />
     </div>
   );
 }

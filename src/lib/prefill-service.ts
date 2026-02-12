@@ -63,6 +63,7 @@ export class PrefillService extends EventEmitter {
       if (code === 0) {
         this.emit("complete", { jobId: this.jobId });
         await this.updateJobStatus(JobStatus.COMPLETED);
+        await this.markJobGamesCached();
       } else {
         const msg = `Process exited with code ${code}`;
         this.emit("error", { jobId: this.jobId, message: msg });
@@ -170,6 +171,30 @@ export class PrefillService extends EventEmitter {
       where: { id: this.jobId },
       data,
     });
+  }
+
+  private async markJobGamesCached(): Promise<void> {
+    try {
+      const jobGames = await prisma.prefillJobGame.findMany({
+        where: { jobId: this.jobId },
+        select: { gameId: true },
+      });
+
+      const gameIds = jobGames.map((jg) => jg.gameId);
+      if (gameIds.length > 0) {
+        await prisma.game.updateMany({
+          where: { id: { in: gameIds } },
+          data: { isCached: true, lastChecked: new Date() },
+        });
+        // Invalidate cached dashboard stats so they refresh on next load
+        await prisma.settings.updateMany({
+          where: { id: "default" },
+          data: { cacheStatsData: null, cacheStatsUpdatedAt: null },
+        });
+      }
+    } catch {
+      // Don't break the flow for cache status update failures
+    }
   }
 
   private async saveLog(level: LogLevel, message: string): Promise<void> {

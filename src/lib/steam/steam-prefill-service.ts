@@ -58,6 +58,9 @@ export class SteamPrefillService extends EventEmitter {
       }
 
       // Process each account's games
+      let succeededCount = 0;
+      let failedCount = 0;
+
       for (const [accountId, accountGames] of accountGameMap) {
         if (this.abortController.signal.aborted) break;
 
@@ -110,8 +113,10 @@ export class SteamPrefillService extends EventEmitter {
               this.abortController.signal,
             );
 
+            succeededCount++;
             this.emit("game-complete", { appId: appIdStr, gameName });
             await this.updateGameStatus(appIdStr, GameJobStatus.COMPLETED);
+            await this.markGameCached(appIdStr);
 
             const completeMsg = `Completed ${gameName}: ${formatBytes(result.downloadedBytes)} downloaded`;
             this.emit("log", { level: LogLevel.INFO, message: completeMsg });
@@ -119,6 +124,7 @@ export class SteamPrefillService extends EventEmitter {
           } catch (err) {
             if (this.abortController.signal.aborted) break;
 
+            failedCount++;
             const errMsg = err instanceof Error ? err.message : String(err);
             appLog.error("Steam", `Prefill failed for ${gameName}: ${errMsg}`);
             this.emit("game-error", { appId: appIdStr, gameName, message: errMsg });
@@ -132,7 +138,16 @@ export class SteamPrefillService extends EventEmitter {
       if (this.abortController.signal.aborted) {
         await this.updateJobStatus(JobStatus.CANCELLED);
         this.emit("complete", { jobId: this.jobId });
+      } else if (succeededCount === 0 && failedCount > 0) {
+        const errorMsg = `All ${failedCount} game(s) failed`;
+        await this.updateJobStatus(JobStatus.FAILED, errorMsg);
+        this.emit("error", { jobId: this.jobId, message: errorMsg });
       } else {
+        if (failedCount > 0) {
+          const warnMsg = `${failedCount} of ${succeededCount + failedCount} game(s) failed`;
+          this.emit("log", { level: LogLevel.WARNING, message: warnMsg });
+          await this.saveLog(LogLevel.WARNING, warnMsg);
+        }
         await this.updateJobStatus(JobStatus.COMPLETED);
         this.emit("complete", { jobId: this.jobId });
       }
@@ -183,6 +198,22 @@ export class SteamPrefillService extends EventEmitter {
       });
     } catch {
       // Don't break the flow for status update failures
+    }
+  }
+
+  private async markGameCached(appId: string): Promise<void> {
+    try {
+      await prisma.game.updateMany({
+        where: { appId },
+        data: { isCached: true, lastChecked: new Date() },
+      });
+      // Invalidate cached dashboard stats so they refresh on next load
+      await prisma.settings.updateMany({
+        where: { id: "default" },
+        data: { cacheStatsData: null, cacheStatsUpdatedAt: null },
+      });
+    } catch {
+      // Don't break the prefill flow for cache status update failures
     }
   }
 

@@ -21,6 +21,7 @@ model PrefillTool {
 
   games       Game[]
   prefillJobs PrefillJob[]
+  schedules   Schedule[]
 
   @@map("prefill_tools")
 }
@@ -47,6 +48,7 @@ model Game {
   appId       String
   name        String
   sizeBytes   BigInt?
+  depots      String?
   isCached    Boolean   @default(false)
   lastChecked DateTime?
   createdAt   DateTime  @default(now())
@@ -55,6 +57,7 @@ model Game {
   tool            PrefillTool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
   prefillJobGames PrefillJobGame[]
   ownerships      GameOwnership[]
+  scheduleGames   ScheduleGame[]
 
   @@unique([toolId, appId])
   @@index([toolId])
@@ -90,12 +93,16 @@ model PrefillJob {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  tool  PrefillTool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
-  games PrefillJobGame[]
-  logs  PrefillJobLog[]
+  scheduleId      String?
+
+  tool     PrefillTool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  schedule Schedule?        @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  games    PrefillJobGame[]
+  logs     PrefillJobLog[]
 
   @@index([status])
   @@index([createdAt])
+  @@index([scheduleId])
   @@map("prefill_jobs")
 }
 
@@ -139,6 +146,11 @@ model Settings {
   defaultFlags        String?
   refreshInterval     Int      @default(3600)
 
+  // Scheduling defaults
+  defaultScheduleTime String   @default("01:00")
+  enableAutoUpdate    Boolean  @default(false)
+  autoUpdateTime      String   @default("03:00")
+
   // Connection mode: "local" or "remote"
   connectionMode      String   @default("local")
 
@@ -161,4 +173,41 @@ model Settings {
   updatedAt           DateTime @updatedAt
 
   @@map("settings")
+}
+
+model Schedule {
+  id             String    @id @default(cuid())
+  name           String?
+  toolId         String
+  type           String    @default("one-time")
+  cronExpression String?
+  scheduledAt    DateTime?
+  flags          String?
+  isEnabled      Boolean   @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tool  PrefillTool    @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  games ScheduleGame[]
+  jobs  PrefillJob[]
+
+  @@index([isEnabled])
+  @@index([nextRunAt])
+  @@map("schedules")
+}
+
+model ScheduleGame {
+  id         String   @id @default(cuid())
+  scheduleId String
+  gameId     String
+  createdAt  DateTime @default(now())
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  game     Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, gameId])
+  @@index([scheduleId])
+  @@map("schedule_games")
 }

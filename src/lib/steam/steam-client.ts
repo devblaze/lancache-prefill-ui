@@ -53,6 +53,28 @@ async function runWithConcurrency<T>(
   await Promise.all(executing);
 }
 
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  signal?: AbortSignal,
+): Promise<T> {
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (signal?.aborted) throw new Error("Cancelled");
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (signal?.aborted) throw new Error("Cancelled");
+      if (attempt < maxAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export class SteamClient extends EventEmitter {
   readonly accountId: string;
   private client: SteamUser;
@@ -251,7 +273,11 @@ export class SteamClient extends EventEmitter {
     if (!this.isLoggedIn) throw new Error("Not logged in");
 
     callbacks.onLog(`Getting product info for app ${appId}...`);
-    const productInfo = await this.client.getProductInfo([appId], []);
+    const productInfo = await withRetry(
+      () => this.client.getProductInfo([appId], []),
+      3,
+      abortSignal,
+    );
     const appData = productInfo.apps[appId];
     if (!appData) throw new Error(`App ${appId} not found`);
 
@@ -294,7 +320,11 @@ export class SteamClient extends EventEmitter {
 
       try {
         callbacks.onLog(`Fetching manifest for depot ${depotId}...`);
-        const { manifest } = await this.client.getManifest(appId, depotId, manifestId, "public");
+        const { manifest } = await withRetry(
+          () => this.client.getManifest(appId, depotId, manifestId, "public"),
+          3,
+          abortSignal,
+        );
 
         let depotSize = 0;
         const files: Array<{ chunks: Array<{ sha: string; cb_original: number }> }> = [];
@@ -330,7 +360,11 @@ export class SteamClient extends EventEmitter {
     const startTime = Date.now();
     let depotIndex = 0;
 
-    const { servers } = await this.client.getContentServers(appId);
+    const { servers } = await withRetry(
+      () => this.client.getContentServers(appId),
+      3,
+      abortSignal,
+    );
     if (servers.length === 0) throw new Error("No content servers available");
 
     for (const [depotId, depotManifest] of manifests) {
@@ -349,8 +383,10 @@ export class SteamClient extends EventEmitter {
       const tasks = allChunks.map((chunk) => async () => {
         if (abortSignal?.aborted) throw new Error("Cancelled");
 
-        const server = servers[Math.floor(Math.random() * servers.length)];
-        await this.client.downloadChunk(appId, depotId, chunk.sha, server);
+        await withRetry(async () => {
+          const server = servers[Math.floor(Math.random() * servers.length)];
+          await this.client.downloadChunk(appId, depotId, chunk.sha, server);
+        }, 3, abortSignal);
 
         downloadedBytes += chunk.cb_original;
         const elapsed = (Date.now() - startTime) / 1000;

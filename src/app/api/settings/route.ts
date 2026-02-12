@@ -15,6 +15,9 @@ const settingsSchema = z.object({
   sshKeyPath: z.string().nullable().optional(),
   sshPassword: z.string().nullable().optional(),
   lancacheServerUrl: z.string().nullable().optional(),
+  defaultScheduleTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  enableAutoUpdate: z.boolean().optional(),
+  autoUpdateTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
 });
 
 export async function GET() {

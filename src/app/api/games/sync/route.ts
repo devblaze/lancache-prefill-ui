@@ -85,11 +85,15 @@ async function syncSteamNative(toolId: string) {
       if (info.type !== "Game" && info.type !== "game") continue;
 
       let totalSize = BigInt(0);
-      for (const [, depot] of info.depots) {
+      const depotIds: string[] = [];
+      for (const [depotId, depot] of info.depots) {
+        depotIds.push(String(depotId));
         if (depot.maxSize > 0) {
           totalSize += BigInt(depot.maxSize);
         }
       }
+
+      const depotsJson = depotIds.length > 0 ? JSON.stringify(depotIds) : null;
 
       // Upsert canonical game record (deduplicated by toolId+appId)
       const game = await prisma.game.upsert({
@@ -104,10 +108,12 @@ async function syncSteamNative(toolId: string) {
           appId: String(info.appId),
           name: info.name,
           sizeBytes: totalSize > 0 ? totalSize : null,
+          depots: depotsJson,
         },
         update: {
           name: info.name,
           sizeBytes: totalSize > 0 ? totalSize : null,
+          depots: depotsJson,
         },
       });
 

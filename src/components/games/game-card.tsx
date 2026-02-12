@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CheckCircle, Circle, HardDrive, Gamepad2, Hash } from "lucide-react";
+import { CheckCircle, Circle, HardDrive, Gamepad2, Package } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
+import { getGameImageUrl } from "@/lib/image-url";
 
 interface GameCardProps {
   game: {
     id: string;
     appId: string;
     name: string;
-    sizeBytes: bigint | null;
+    sizeBytes: string | bigint | null;
+    depots: string | null;
     isCached: boolean;
     lastChecked: string | null;
     tool: {
@@ -21,14 +23,11 @@ interface GameCardProps {
   onToggleSelect: () => void;
 }
 
-function getSteamHeaderUrl(appId: string): string {
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
-}
-
 export function GameCard({ game, isSelected, onToggleSelect }: GameCardProps) {
   const [imgError, setImgError] = useState(false);
   const isSteam = game.tool.displayName === "Steam";
   const hasSize = game.sizeBytes !== null && game.sizeBytes !== undefined;
+  const depotCount = game.depots ? (JSON.parse(game.depots) as string[]).length : 0;
 
   return (
     <div
@@ -43,7 +42,7 @@ export function GameCard({ game, isSelected, onToggleSelect }: GameCardProps) {
       <div className="relative aspect-[460/215] w-full bg-zinc-100 dark:bg-zinc-800">
         {isSteam && !imgError ? (
           <Image
-            src={getSteamHeaderUrl(game.appId)}
+            src={getGameImageUrl(game.appId, game.tool.displayName)}
             alt={game.name}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -63,41 +62,49 @@ export function GameCard({ game, isSelected, onToggleSelect }: GameCardProps) {
             <Circle className="h-6 w-6 text-white/70 drop-shadow-md" />
           )}
         </div>
-        {/* Cached badge overlay */}
-        {game.isCached && (
-          <div className="absolute left-2 top-2">
+        {/* Cache status badge overlay */}
+        <div className="absolute left-2 top-2">
+          {game.isCached ? (
             <span className="rounded bg-green-600/90 px-2 py-0.5 text-xs font-medium text-white">
               Cached
             </span>
-          </div>
-        )}
+          ) : (
+            <span className="rounded bg-zinc-800/70 px-2 py-0.5 text-xs font-medium text-white">
+              Not Cached
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Info */}
       <div className="p-3">
         <h3 className="line-clamp-1 text-sm font-medium">{game.name}</h3>
-        <div className="mt-1.5 flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-          <span>{game.tool.displayName}</span>
-          <span className="flex items-center gap-0.5">
-            <Hash className="h-3 w-3" />
-            {game.appId}
-          </span>
-        </div>
         <div className="mt-1.5 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-          {hasSize ? (
+          <span>{game.tool.displayName}</span>
+          {hasSize && (
             <span className="flex items-center gap-1">
               <HardDrive className="h-3 w-3" />
-              {formatBytes(game.sizeBytes)}
-            </span>
-          ) : (
-            <span />
-          )}
-          {game.lastChecked && (
-            <span title={new Date(game.lastChecked).toLocaleString()}>
-              Checked {formatRelativeDate(game.lastChecked)}
+              {formatBytes(typeof game.sizeBytes === "string" ? BigInt(game.sizeBytes) : game.sizeBytes)}
             </span>
           )}
         </div>
+        {(depotCount > 0 || game.lastChecked) && (
+          <div className="mt-1 flex items-center justify-between text-xs text-zinc-400 dark:text-zinc-500">
+            {depotCount > 0 ? (
+              <span className="flex items-center gap-1">
+                <Package className="h-3 w-3" />
+                {depotCount} depot{depotCount !== 1 ? "s" : ""}
+              </span>
+            ) : (
+              <span />
+            )}
+            {game.lastChecked && (
+              <span title={new Date(game.lastChecked).toLocaleString()}>
+                Checked {formatRelativeDate(game.lastChecked)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
