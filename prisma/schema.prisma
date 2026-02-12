@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model PrefillTool {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  displayName    String
+  executablePath String
+  configPath     String?
+  isConfigured   Boolean  @default(false)
+  isEnabled      Boolean  @default(true)
+  prefillMode    String   @default("cli")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  games       Game[]
+  prefillJobs PrefillJob[]
+
+  @@map("prefill_tools")
+}
+
+model SteamAccount {
+  id            String    @id @default(cuid())
+  username      String?
+  refreshToken  String?
+  steamId       String?
+  displayName   String?
+  isLoggedIn    Boolean   @default(false)
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ownedGames    GameOwnership[]
+
+  @@map("steam_accounts")
+}
+
+model Game {
+  id          String    @id @default(cuid())
+  toolId      String
+  appId       String
+  name        String
+  sizeBytes   BigInt?
+  isCached    Boolean   @default(false)
+  lastChecked DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tool            PrefillTool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  prefillJobGames PrefillJobGame[]
+  ownerships      GameOwnership[]
+
+  @@unique([toolId, appId])
+  @@index([toolId])
+  @@index([isCached])
+  @@map("games")
+}
+
+model GameOwnership {
+  id             String       @id @default(cuid())
+  gameId         String
+  steamAccountId String
+  createdAt      DateTime     @default(now())
+
+  game           Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  steamAccount   SteamAccount @relation(fields: [steamAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, steamAccountId])
+  @@index([steamAccountId])
+  @@index([gameId])
+  @@map("game_ownerships")
+}
+
+model PrefillJob {
+  id              String    @id @default(cuid())
+  toolId          String
+  status          String    @default("pending")
+  startedAt       DateTime?
+  completedAt     DateTime?
+  totalBytes      BigInt    @default(0)
+  downloadedBytes BigInt    @default(0)
+  errorMessage    String?
+  flags           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tool  PrefillTool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  games PrefillJobGame[]
+  logs  PrefillJobLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("prefill_jobs")
+}
+
+model PrefillJobGame {
+  id              String   @id @default(cuid())
+  jobId           String
+  gameId          String
+  status          String   @default("pending")
+  progress        Float    @default(0)
+  sizeBytes       BigInt?
+  downloadedBytes BigInt   @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  job  PrefillJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  game Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, gameId])
+  @@index([jobId])
+  @@map("prefill_job_games")
+}
+
+model PrefillJobLog {
+  id        String   @id @default(cuid())
+  jobId     String
+  message   String
+  level     String   @default("info")
+  timestamp DateTime @default(now())
+
+  job PrefillJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([timestamp])
+  @@map("prefill_job_logs")
+}
+
+model Settings {
+  id                  String   @id @default("default")
+  lancachePath        String   @default("/data/cache/")
+  enableScheduledJobs Boolean  @default(false)
+  defaultFlags        String?
+  refreshInterval     Int      @default(3600)
+
+  // Connection mode: "local" or "remote"
+  connectionMode      String   @default("local")
+
+  // SSH connection settings (for remote cache stats)
+  sshHost             String?
+  sshPort             Int      @default(22)
+  sshUsername          String?
+  sshAuthMethod       String   @default("key")
+  sshKeyPath          String?
+  sshPassword         String?
+
+  // Lancache server URL (for health/connectivity checks)
+  lancacheServerUrl   String?
+
+  // Cached cache stats (avoid recalculating on every dashboard load)
+  cacheStatsData      String?
+  cacheStatsUpdatedAt DateTime?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("settings")
+}

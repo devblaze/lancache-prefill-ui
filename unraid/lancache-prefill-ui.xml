@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>lancache-prefill-ui</Name>
+  <Repository>ghcr.io/nickantoniadis/lancache-prefill-ui:latest</Repository>
+  <Registry>https://github.com/nickantoniadis/lancache-prefill-ui/pkgs/container/lancache-prefill-ui</Registry>
+  <Branch>
+    <Tag>latest</Tag>
+    <TagDescription>Latest stable release</TagDescription>
+  </Branch>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/nickantoniadis/lancache-prefill-ui/issues</Support>
+  <Project>https://github.com/nickantoniadis/lancache-prefill-ui</Project>
+  <Overview>
+    Web UI for managing lancache prefill operations across Steam, Battle.net, and Epic Games.
+    Pre-download game content through your lancache server so LAN clients get instant speeds.
+
+    Features:
+    - Native Steam integration (no CLI tool needed) with multi-account support
+    - Battle.net and Epic Games support via CLI prefill tools
+    - Real-time download progress via SSE
+    - Game library browser with Steam header images
+    - Remote cache stats via SSH
+    - Job history and logging
+  </Overview>
+  <Category>GameServers: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:3000]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/nickantoniadis/lancache-prefill-ui/main/unraid/lancache-prefill-ui.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/nickantoniadis/lancache-prefill-ui/main/public/icon.png</Icon>
+  <Description>
+    Web UI for managing lancache prefill operations. Pre-download Steam, Battle.net, and Epic Games content through your lancache so LAN clients get maximum download speeds.
+  </Description>
+  <Changes>
+    ### 0.1.0
+    - Initial release
+    - Native Steam prefill with multi-account support
+    - Battle.net and Epic Games CLI tool integration
+    - Real-time SSE progress tracking
+    - Remote cache stats via SSH
+  </Changes>
+
+  <Config
+    Name="Web UI Port"
+    Target="3000"
+    Default="3000"
+    Mode="tcp"
+    Description="Port for the web interface"
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false">3000</Config>
+
+  <Config
+    Name="Database"
+    Target="/app/data"
+    Default="/mnt/user/appdata/lancache-prefill-ui"
+    Mode="rw"
+    Description="Persistent storage for the SQLite database and app data"
+    Type="Path"
+    Display="always"
+    Required="true"
+    Mask="false">/mnt/user/appdata/lancache-prefill-ui</Config>
+
+  <Config
+    Name="Lancache Cache Directory"
+    Target="/data/cache"
+    Default="/mnt/user/lancache/cache"
+    Mode="ro"
+    Description="Path to your lancache cache directory (read-only). Used for cache size stats. Leave empty if using remote SSH mode."
+    Type="Path"
+    Display="always"
+    Required="false"
+    Mask="false">/mnt/user/lancache/cache</Config>
+
+  <Config
+    Name="DATABASE_URL"
+    Target="DATABASE_URL"
+    Default="file:./data/lancache-prefill.db"
+    Description="SQLite database path (usually no need to change)"
+    Type="Variable"
+    Display="advanced"
+    Required="true"
+    Mask="false">file:./data/lancache-prefill.db</Config>
+
+  <Config
+    Name="LANCACHE_PATH"
+    Target="LANCACHE_PATH"
+    Default="/data/cache/"
+    Description="Cache path inside the container (must match the mount above)"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">/data/cache/</Config>
+</Container>

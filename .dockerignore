@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env*
+!.env.example
+.DS_Store
+.idea
+generated
+*.db
+.claude

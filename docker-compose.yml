@@ -1,0 +1,25 @@
+services:
+  lancache-prefill-ui:
+    build: .
+    image: lancache-prefill-ui:latest
+    container_name: lancache-prefill-ui
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persistent database
+      - lancache-prefill-data:/app/data
+      # Optional: mount lancache cache directory for local cache stats
+      # - /path/to/lancache/cache:/data/cache:ro
+      # Optional: mount SSH key for remote cache stats
+      # - ~/.ssh/id_rsa:/app/.ssh/id_rsa:ro
+    environment:
+      - DATABASE_URL=file:./data/lancache-prefill.db
+      - LANCACHE_PATH=/data/cache/
+      # Optional: preconfigure via environment variables
+      # - STEAM_PREFILL_PATH=/usr/local/bin/SteamPrefill
+      # - BATTLENET_PREFILL_PATH=/usr/local/bin/BattleNetPrefill
+      # - EPIC_PREFILL_PATH=/usr/local/bin/EpicPrefill
+
+volumes:
+  lancache-prefill-data:
