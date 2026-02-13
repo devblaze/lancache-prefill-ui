@@ -53,7 +53,9 @@ Track all prefill jobs with game thumbnails, status indicators, and schedule bad
 ### Settings
 Configure connection mode, scheduling defaults, auto-update, and manage prefill tools.
 
-![Settings](docs/screenshots/settings.png)
+![Settings](docs/screenshots/settings1.png)
+![Settings](docs/screenshots/settings2.png)
+![Settings](docs/screenshots/settings3.png)
 
 ## Quick Start with Docker
 
