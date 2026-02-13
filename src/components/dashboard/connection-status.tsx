@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Wifi, WifiOff, Server, Monitor } from "lucide-react";
+import { Wifi, WifiOff, Server, Monitor, Gamepad2 } from "lucide-react";
 
 interface ConnectionStatusProps {
   connectionMode: string;
@@ -21,6 +21,11 @@ interface StatusData {
     reachable: boolean;
     responseTimeMs?: number;
     error?: string;
+  } | null;
+  steam: {
+    total: number;
+    connected: number;
+    accounts: Array<{ displayName: string | null; username: string | null; connected: boolean }>;
   } | null;
 }
 
@@ -52,9 +57,8 @@ export function ConnectionStatus({
     };
   }, []);
 
-  if (connectionMode === "local" && !lancacheServerUrl) {
-    return null;
-  }
+  // Don't hide the widget — always show if we have data to display
+  const hasRemote = connectionMode !== "local" || !!lancacheServerUrl;
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
@@ -64,13 +68,41 @@ export function ConnectionStatus({
       ) : (
         <div className="space-y-3">
           {/* Connection Mode */}
-          <div className="flex items-center gap-3 text-sm">
-            <Monitor className="h-4 w-4 text-zinc-500" />
-            <span className="text-zinc-600 dark:text-zinc-400">Mode:</span>
-            <span className="font-medium capitalize">
-              {status?.connectionMode || connectionMode}
-            </span>
-          </div>
+          {hasRemote && (
+            <div className="flex items-center gap-3 text-sm">
+              <Monitor className="h-4 w-4 text-zinc-500" />
+              <span className="text-zinc-600 dark:text-zinc-400">Mode:</span>
+              <span className="font-medium capitalize">
+                {status?.connectionMode || connectionMode}
+              </span>
+            </div>
+          )}
+
+          {/* Steam Accounts */}
+          {status?.steam && status.steam.total > 0 && (
+            <div className="flex items-center gap-3 text-sm">
+              <Gamepad2
+                className={`h-4 w-4 ${status.steam.connected > 0 ? "text-green-500" : "text-red-500"}`}
+              />
+              <span className="text-zinc-600 dark:text-zinc-400">Steam:</span>
+              <span
+                className={
+                  status.steam.connected > 0 ? "text-green-600" : "text-red-600"
+                }
+              >
+                {status.steam.connected === status.steam.total
+                  ? `${status.steam.total} account${status.steam.total !== 1 ? "s" : ""} connected`
+                  : `${status.steam.connected}/${status.steam.total} connected`}
+              </span>
+              {status.steam.accounts.length > 0 && (
+                <span className="text-zinc-400">
+                  ({status.steam.accounts
+                    .map((a) => a.displayName || a.username || "Unknown")
+                    .join(", ")})
+                </span>
+              )}
+            </div>
+          )}
 
           {/* SSH Status */}
           {status?.ssh && (
@@ -114,10 +146,10 @@ export function ConnectionStatus({
             </div>
           )}
 
-          {/* No connections configured */}
-          {!status?.ssh && !status?.lancache && (
+          {/* No connections at all */}
+          {!status?.ssh && !status?.lancache && !status?.steam && (
             <p className="text-sm text-zinc-500">
-              No remote connections configured
+              No connections configured
             </p>
           )}
         </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { testSSHConnection, type SSHConfig } from "@/lib/ssh-client";
 import { checkLancacheHealth } from "@/lib/lancache-health";
+import { SteamClientManager } from "@/lib/steam/steam-client-manager";
 
 export async function GET() {
   const settings = await prisma.settings.findUnique({
@@ -21,10 +22,16 @@ export async function GET() {
       responseTimeMs?: number;
       error?: string;
     } | null;
+    steam: {
+      total: number;
+      connected: number;
+      accounts: Array<{ displayName: string | null; username: string | null; connected: boolean }>;
+    } | null;
   } = {
     connectionMode: settings?.connectionMode || "local",
     ssh: null,
     lancache: null,
+    steam: null,
   };
 
   if (
@@ -62,6 +69,26 @@ export async function GET() {
       responseTimeMs: healthResult.responseTimeMs,
       error: healthResult.error,
     };
+  }
+
+  // Steam accounts
+  try {
+    const manager = SteamClientManager.getInstance();
+    const allStatuses = await manager.getAllStatuses();
+    if (allStatuses.length > 0) {
+      const connected = allStatuses.filter((a) => a.state === "logged_in").length;
+      status.steam = {
+        total: allStatuses.length,
+        connected,
+        accounts: allStatuses.map((a) => ({
+          displayName: a.displayName,
+          username: a.username,
+          connected: a.state === "logged_in",
+        })),
+      };
+    }
+  } catch {
+    // Ignore Steam status errors
   }
 
   return NextResponse.json(status);

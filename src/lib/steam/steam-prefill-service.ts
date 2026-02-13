@@ -16,10 +16,16 @@ export class SteamPrefillService extends EventEmitter {
 
   async startPrefill(appIds: string[]): Promise<void> {
     const manager = SteamClientManager.getInstance();
+
+    // Auto-reconnect disconnected accounts before failing
+    this.emit("log", { level: LogLevel.INFO, message: "Checking Steam connection..." });
+    await this.saveLog(LogLevel.INFO, "Checking Steam connection...");
+    await manager.ensureLoggedIn();
+
     const loggedInClients = manager.getLoggedInClients();
 
     if (loggedInClients.length === 0) {
-      const msg = "No Steam accounts logged in";
+      const msg = "No Steam accounts logged in. Please log in via Settings.";
       this.emit("error", { jobId: this.jobId, message: msg });
       await this.updateJobStatus(JobStatus.FAILED, msg);
       return;

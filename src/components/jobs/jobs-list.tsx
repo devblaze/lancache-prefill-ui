@@ -128,7 +128,7 @@ export function JobsList() {
                       </>
                     )}
                   </div>
-                  {job.status === "running" && (
+                  {(job.status === "running" || job.status === "pending") && (
                     <button
                       onClick={(e) => {
                         e.preventDefault();

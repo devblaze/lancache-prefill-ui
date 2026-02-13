@@ -17,11 +17,12 @@ export function DashboardStats() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/cache/stats");
+      const url = force ? "/api/cache/stats?force=1" : "/api/cache/stats";
+      const res = await fetch(url);
       if (!res.ok) {
         setError("Failed to fetch cache stats");
         return;
@@ -49,7 +50,7 @@ export function DashboardStats() {
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Cache Overview</h2>
         <button
-          onClick={fetchStats}
+          onClick={() => fetchStats(true)}
           disabled={loading}
           className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
         >
@@ -123,7 +124,7 @@ export function DashboardStats() {
             </div>
             <div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                By Platform
+                Cached by Platform
               </p>
               <div className="mt-1 space-y-1 text-sm">
                 {stats &&

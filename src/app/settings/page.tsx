@@ -1,7 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { SettingsForm } from "@/components/settings/settings-form";
-import { ToolsConfiguration } from "@/components/settings/tools-configuration";
-import { CacheManagement } from "@/components/settings/cache-management";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 export default async function SettingsPage() {
   const [settings, tools] = await Promise.all([
@@ -9,11 +7,15 @@ export default async function SettingsPage() {
     prisma.prefillTool.findMany(),
   ]);
 
-  // Serialize for client components
   const serializedTools = tools.map((tool) => ({
-    ...tool,
-    createdAt: tool.createdAt.toISOString(),
-    updatedAt: tool.updatedAt.toISOString(),
+    id: tool.id,
+    name: tool.name,
+    displayName: tool.displayName,
+    executablePath: tool.executablePath,
+    configPath: tool.configPath,
+    isConfigured: tool.isConfigured,
+    isEnabled: tool.isEnabled,
+    prefillMode: tool.prefillMode,
   }));
 
   const serializedSettings = settings
@@ -35,7 +37,7 @@ export default async function SettingsPage() {
     : null;
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-zinc-600 dark:text-zinc-400">
@@ -43,9 +45,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <SettingsForm initialSettings={serializedSettings} />
-      <ToolsConfiguration tools={serializedTools} />
-      <CacheManagement />
+      <SettingsTabs settings={serializedSettings} tools={serializedTools} />
     </div>
   );
 }

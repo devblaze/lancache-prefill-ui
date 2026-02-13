@@ -162,7 +162,7 @@ export function JobDetails({ job: initialJob }: JobDetailsProps) {
           </div>
         )}
 
-        {isRunning && (
+        {(isRunning || initialJob.status === "pending") && (
           <div className="mt-4">
             <button
               onClick={handleCancel}

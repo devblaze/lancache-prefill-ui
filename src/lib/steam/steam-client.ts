@@ -53,6 +53,16 @@ async function runWithConcurrency<T>(
   await Promise.all(executing);
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 async function withRetry<T>(
   fn: () => Promise<T>,
   maxAttempts = 3,
@@ -161,6 +171,35 @@ export class SteamClient extends EventEmitter {
     appLog.info("Steam", `[${this.accountId}] Reconnecting as ${account.username || "unknown"} with refresh token`);
     this.resetOwnershipPromise();
     this.client.logOn({ refreshToken: account.refreshToken });
+  }
+
+  waitForLogin(timeoutMs = 30000): Promise<boolean> {
+    if (this._authState === SteamAuthState.LOGGED_IN) return Promise.resolve(true);
+    if (this._authState === SteamAuthState.ERROR) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(false);
+      }, timeoutMs);
+
+      const onState = ({ state }: { state: SteamAuthState }) => {
+        if (state === SteamAuthState.LOGGED_IN) {
+          cleanup();
+          resolve(true);
+        } else if (state === SteamAuthState.ERROR || state === SteamAuthState.DISCONNECTED) {
+          cleanup();
+          resolve(false);
+        }
+      };
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.off("state-change", onState);
+      };
+
+      this.on("state-change", onState);
+    });
   }
 
   submitSteamGuardCode(code: string): void {
@@ -385,7 +424,10 @@ export class SteamClient extends EventEmitter {
 
         await withRetry(async () => {
           const server = servers[Math.floor(Math.random() * servers.length)];
-          await this.client.downloadChunk(appId, depotId, chunk.sha, server);
+          await withTimeout(
+            this.client.downloadChunk(appId, depotId, chunk.sha, server),
+            60000,
+          );
         }, 3, abortSignal);
 
         downloadedBytes += chunk.cb_original;

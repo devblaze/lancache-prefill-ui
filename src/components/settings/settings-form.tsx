@@ -19,9 +19,12 @@ interface SettingsFormProps {
     enableAutoUpdate: boolean;
     autoUpdateTime: string;
   } | null;
+  activeTab?: string;
 }
 
-export function SettingsForm({ initialSettings }: SettingsFormProps) {
+export function SettingsForm({ initialSettings, activeTab }: SettingsFormProps) {
+  const showGeneral = !activeTab || activeTab === "general";
+  const showConnection = !activeTab || activeTab === "connection";
   const [lancachePath, setLancachePath] = useState(
     initialSettings?.lancachePath || "/data/cache/"
   );
@@ -293,7 +296,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Auto-save status bar */}
-      <div className="flex items-center justify-end gap-2 text-sm">
+      <div className={`flex items-center justify-end gap-2 text-sm ${showGeneral || showConnection ? "" : "hidden"}`}>
         {saving && (
           <span className="text-zinc-500">Saving...</span>
         )}
@@ -309,7 +312,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       </div>
 
       {/* General Settings */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className={`rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 ${showGeneral ? "" : "hidden"}`}>
         <h2 className="mb-4 text-xl font-semibold">General Settings</h2>
         <div className="space-y-4">
           <div>
@@ -352,7 +355,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       </div>
 
       {/* Scheduling & Auto-Update */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className={`rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 ${showGeneral ? "" : "hidden"}`}>
         <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold">
           <Clock className="h-5 w-5" />
           Scheduling & Auto-Update
@@ -425,7 +428,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       </div>
 
       {/* Connection Mode */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className={`rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 ${showConnection ? "" : "hidden"}`}>
         <h2 className="mb-4 text-xl font-semibold">Connection Mode</h2>
         <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
           Choose how to access the lancache server&apos;s cache directory for
@@ -470,7 +473,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       </div>
 
       {/* SSH Configuration */}
-      {connectionMode === "remote" && (
+      {connectionMode === "remote" && showConnection && (
         <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="mb-4 text-xl font-semibold">SSH Configuration</h2>
           <div className="space-y-4">
@@ -600,7 +603,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       )}
 
       {/* Lancache Server URL */}
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className={`rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 ${showConnection ? "" : "hidden"}`}>
         <h2 className="mb-4 text-xl font-semibold">Lancache Server</h2>
         <div className="space-y-4">
           <div>
@@ -647,7 +650,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
       </div>
 
       {/* Manual Save Button (fallback) */}
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center gap-3 ${showGeneral || showConnection ? "" : "hidden"}`}>
         <button
           type="submit"
           disabled={saving}

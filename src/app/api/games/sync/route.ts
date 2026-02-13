@@ -47,6 +47,14 @@ export async function POST(request: NextRequest) {
       count++;
     }
 
+    // Mark tool as configured after successful sync
+    if (count > 0 && !tool.isConfigured) {
+      await prisma.prefillTool.update({
+        where: { id: tool.id },
+        data: { isConfigured: true },
+      });
+    }
+
     return NextResponse.json({ success: true, count });
   } catch (error) {
     const message =
@@ -134,6 +142,14 @@ async function syncSteamNative(toolId: string) {
 
       count++;
     }
+  }
+
+  // Mark tool as configured after successful sync
+  if (count > 0) {
+    await prisma.prefillTool.update({
+      where: { id: toolId },
+      data: { isConfigured: true },
+    });
   }
 
   appLog.info("Steam", `Synced ${count} game entries across all accounts`);

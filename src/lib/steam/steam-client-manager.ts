@@ -134,6 +134,51 @@ export class SteamClientManager extends EventEmitter {
     }
   }
 
+  // --- Ensure logged in (auto-reconnect) ---
+
+  async ensureLoggedIn(timeoutMs = 30000): Promise<void> {
+    await this.ensureReady();
+
+    if (this.getLoggedInClients().length > 0) return;
+
+    // Find accounts with refresh tokens that can be reconnected
+    const accounts = await prisma.steamAccount.findMany({
+      where: { refreshToken: { not: null } },
+    });
+
+    if (accounts.length === 0) return;
+
+    appLog.info(
+      "Steam",
+      `No logged-in clients, attempting reconnection for ${accounts.length} account(s)...`,
+    );
+
+    const loginPromises: Promise<boolean>[] = [];
+
+    for (const account of accounts) {
+      try {
+        const client = this.getOrCreateClient(account.id);
+        if (client.isLoggedIn) continue;
+        await client.loginWithRefreshToken();
+        loginPromises.push(client.waitForLogin(timeoutMs));
+      } catch (err) {
+        appLog.warn(
+          "Steam",
+          `Failed to start reconnection for ${account.username || account.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (loginPromises.length === 0) return;
+
+    try {
+      await Promise.any(loginPromises);
+      appLog.info("Steam", "At least one account reconnected successfully");
+    } catch {
+      appLog.warn("Steam", "No accounts reconnected within timeout");
+    }
+  }
+
   // --- Query ---
 
   getLoggedInClients(): Array<{ accountId: string; client: SteamClient }> {

@@ -18,6 +18,43 @@ Built on top of the excellent prefill tools by [tpill90](https://github.com/tpil
 - **Job History** — track all prefill jobs with detailed logs
 - **Dark Mode** — automatic dark/light theme based on system preference
 
+## Screenshots
+
+### Dashboard
+Overview with cache stats, recent jobs, upcoming schedules, and connection status.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Game Library
+Browse, search, and filter your game library. Select games for prefill or scheduling.
+
+![Game Library](docs/screenshots/game-library.png)
+
+### Prefill Dialog
+Run prefills immediately, schedule them for a specific time, or set up recurring schedules.
+
+![Prefill Dialog](docs/screenshots/prefill-dialog.png)
+
+### Schedules
+Manage one-time and recurring prefill schedules with enable/disable and run-now controls.
+
+![Schedules](docs/screenshots/schedules.png)
+
+### Job Details
+Real-time download progress with per-game status, speed, and detailed logs.
+
+![Job Details](docs/screenshots/job-details.png)
+
+### Jobs List
+Track all prefill jobs with game thumbnails, status indicators, and schedule badges.
+
+![Jobs List](docs/screenshots/jobs-list.png)
+
+### Settings
+Configure connection mode, scheduling defaults, auto-update, and manage prefill tools.
+
+![Settings](docs/screenshots/settings.png)
+
 ## Quick Start with Docker
 
 ### Docker Run

@@ -217,16 +217,16 @@ export interface PrefillJobRunner extends EventEmitter {
   cancel(): Promise<void>;
 }
 
-// Singleton to manage active prefill jobs
+// Singleton to manage active prefill jobs (globalThis for HMR safety)
 export class JobManager {
-  private static instance: JobManager;
   private activeJobs = new Map<string, PrefillJobRunner>();
 
   static getInstance(): JobManager {
-    if (!JobManager.instance) {
-      JobManager.instance = new JobManager();
+    const g = globalThis as unknown as { _jobManager?: JobManager };
+    if (!g._jobManager) {
+      g._jobManager = new JobManager();
     }
-    return JobManager.instance;
+    return g._jobManager;
   }
 
   async startJob(
